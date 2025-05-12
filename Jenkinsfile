@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_IMAGE = 'flask-ci-cd-demo'
-        DOCKER_REGISTRY = 'your-docker-registry-url'  // Optional if pushing to a registry
+        DOCKER_REGISTRY = 'your-docker-registry-url'  // Replace with your registry URL if pushing to a registry
     }
 
     stages {
@@ -32,12 +32,17 @@ pipeline {
             }
         }
 
-        stage('Post Build Actions') {
+        stage('Push Docker Image to Registry') {
+            when {
+                expression { return env.DOCKER_REGISTRY != '' } // Ensure registry URL is set
+            }
             steps {
                 script {
-                    // Optionally, you can push the image to DockerHub or another registry
-                    // dockerImage.push()
-                    // For example: dockerImage.push("${env.BUILD_ID}")
+                    // Log in to Docker registry (use DockerHub as an example)
+                    docker.withRegistry("https://${DOCKER_REGISTRY}", 'docker-hub-credentials') {
+                        // Push the Docker image to the registry
+                        dockerImage.push()
+                    }
                 }
             }
         }
@@ -45,8 +50,14 @@ pipeline {
 
     post {
         always {
-            // Clean up by stopping the container
-            sh 'docker stop $(docker ps -q --filter ancestor=flask-ci-cd-demo)'
+            // Clean up by stopping and removing the container
+            sh """
+                CONTAINER_ID=\$(docker ps -q --filter ancestor=${DOCKER_IMAGE})
+                if [ -n "\$CONTAINER_ID" ]; then
+                    docker stop \$CONTAINER_ID
+                    docker rm \$CONTAINER_ID
+                fi
+            """
         }
     }
 }
