@@ -3,12 +3,12 @@ pipeline {
     stages {
         stage('Install dependencies') {
             steps {
-                bat 'npm install'
+                sh 'pip install -r requirements.txt'
             }
         }
         stage('Run App') {
             steps {
-                bat 'npm start'
+                sh 'python app.py'
             }
         }
     }
